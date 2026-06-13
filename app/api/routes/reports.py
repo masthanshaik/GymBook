@@ -1,12 +1,13 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from datetime import datetime, timedelta
+from typing import Optional
 
 from app.database import get_db
 from app.models import (
-    Member, Payment, Attendance, Membership,
-    PaymentStatus, MembershipStatus,
+    Member, Payment, Attendance, Membership, MembershipPlan,
+    PaymentStatus, MembershipStatus, Expense, Lead, LeadStatus,
 )
 from app.security import get_current_user, TokenData
 
@@ -207,6 +208,115 @@ async def charts_data(
         members_series.append({"month": label, "members": joined})
 
     return {"revenue_trend": revenue_series, "member_growth": members_series}
+
+
+@router.get("/plan-distribution")
+async def plan_distribution(
+    current_user: TokenData = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """How many active memberships each plan has."""
+    vid = current_user.vendor_id
+    plans = db.query(MembershipPlan).filter(MembershipPlan.vendor_id == vid).all()
+    result = []
+    for p in plans:
+        count = db.query(func.count(Membership.id)).filter(
+            Membership.plan_id == p.id,
+            Membership.status == MembershipStatus.ACTIVE,
+        ).scalar() or 0
+        if count > 0:
+            result.append({"plan": p.name, "count": count, "price": p.price})
+    return result
+
+
+@router.get("/financial-extended")
+async def financial_extended(
+    days: int = Query(30, ge=1, le=365),
+    current_user: TokenData = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Extended financial report including expenses and P&L."""
+    vid = current_user.vendor_id
+    since = datetime.utcnow() - timedelta(days=days)
+
+    completed = db.query(Payment).filter(
+        Payment.vendor_id == vid,
+        Payment.status == PaymentStatus.COMPLETED,
+        Payment.completed_at >= since,
+    ).all()
+    total_revenue = sum(p.amount for p in completed)
+    refunds = db.query(func.coalesce(func.sum(Payment.refund_amount), 0.0)).filter(
+        Payment.vendor_id == vid, Payment.is_refunded == True,
+        Payment.refund_date >= since,
+    ).scalar() or 0.0
+
+    total_expenses = 0.0
+    try:
+        total_expenses = db.query(func.coalesce(func.sum(Expense.amount), 0.0)).filter(
+            Expense.vendor_id == vid, Expense.expense_date >= since,
+        ).scalar() or 0.0
+    except Exception:
+        pass
+
+    by_method = {}
+    for p in completed:
+        key = p.payment_method.value if hasattr(p.payment_method, "value") else str(p.payment_method)
+        by_method[key] = round(by_method.get(key, 0.0) + p.amount, 2)
+
+    count = len(completed)
+    return {
+        "total_revenue": round(total_revenue, 2),
+        "total_refunds": round(float(refunds), 2),
+        "total_expenses": round(float(total_expenses), 2),
+        "net_revenue": round(total_revenue - float(refunds), 2),
+        "net_profit": round(total_revenue - float(refunds) - float(total_expenses), 2),
+        "payment_methods": by_method,
+        "transactions_count": count,
+        "average_transaction": round(total_revenue / count, 2) if count else 0,
+        "period_days": days,
+    }
+
+
+@router.get("/leads-funnel")
+async def leads_funnel(
+    current_user: TokenData = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Lead conversion funnel stats."""
+    vid = current_user.vendor_id
+    result = {}
+    try:
+        for s in LeadStatus:
+            result[s.value] = db.query(func.count(Lead.id)).filter(
+                Lead.vendor_id == vid, Lead.status == s
+            ).scalar() or 0
+    except Exception:
+        pass
+    return result
+
+
+@router.get("/retention")
+async def retention_report(
+    current_user: TokenData = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Monthly retention / churn data for the last 6 months."""
+    vid = current_user.vendor_id
+    buckets = _month_buckets(6)
+    result = []
+    for (y, m, label) in buckets:
+        start = datetime(y, m, 1)
+        end = datetime(y + (1 if m == 12 else 0), 1 if m == 12 else m + 1, 1)
+        new_members = db.query(func.count(Member.id)).filter(
+            Member.vendor_id == vid, Member.deleted_at.is_(None),
+            Member.joined_date >= start, Member.joined_date < end,
+        ).scalar() or 0
+        expired_ms = db.query(func.count(Membership.id)).filter(
+            Membership.vendor_id == vid, Membership.status == MembershipStatus.EXPIRED,
+            Membership.ended_date >= start, Membership.ended_date < end,
+        ).scalar() or 0
+        result.append({"month": label, "new": new_members, "expired": expired_ms})
+    return result
 
 
 @router.get("/member-detail/{member_id}")

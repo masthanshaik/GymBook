@@ -1,5 +1,9 @@
 import { Link, useLocation } from 'react-router-dom'
-import { Dumbbell, LayoutDashboard, Users, BookOpen, Bell, CalendarDays, ClipboardCheck, CreditCard, BarChart3, Settings, X } from 'lucide-react'
+import {
+  Dumbbell, LayoutDashboard, Users, BookOpen, Bell, CalendarDays,
+  ClipboardCheck, CreditCard, BarChart3, Settings, X, Shield,
+  Activity, UserPlus, TrendingDown, Lock
+} from 'lucide-react'
 
 interface Props {
   mobileOpen: boolean
@@ -9,16 +13,36 @@ interface Props {
 const Sidebar = ({ mobileOpen, onClose }: Props) => {
   const location = useLocation()
 
-  const menuItems = [
-    { label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
-    { label: 'Members', icon: Users, path: '/members' },
-    { label: 'Memberships', icon: BookOpen, path: '/memberships' },
-    { label: 'Renewals', icon: Bell, path: '/renewals' },
-    { label: 'Classes', icon: CalendarDays, path: '/classes' },
-    { label: 'Attendance', icon: ClipboardCheck, path: '/attendance' },
-    { label: 'Payments', icon: CreditCard, path: '/payments' },
-    { label: 'Reports', icon: BarChart3, path: '/reports' },
-    { label: 'Settings', icon: Settings, path: '/settings' },
+  const sections = [
+    {
+      title: 'Core',
+      items: [
+        { label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
+        { label: 'Members', icon: Users, path: '/members' },
+        { label: 'Memberships', icon: BookOpen, path: '/memberships' },
+        { label: 'Renewals', icon: Bell, path: '/renewals' },
+        { label: 'Classes', icon: CalendarDays, path: '/classes' },
+        { label: 'Attendance', icon: ClipboardCheck, path: '/attendance' },
+        { label: 'Payments', icon: CreditCard, path: '/payments' },
+      ],
+    },
+    {
+      title: 'Growth',
+      items: [
+        { label: 'Leads / CRM', icon: UserPlus, path: '/leads' },
+        { label: 'Measurements', icon: Activity, path: '/measurements' },
+        { label: 'Expenses', icon: TrendingDown, path: '/expenses' },
+        { label: 'Lockers', icon: Lock, path: '/lockers' },
+      ],
+    },
+    {
+      title: 'Manage',
+      items: [
+        { label: 'Staff', icon: Shield, path: '/staff' },
+        { label: 'Reports', icon: BarChart3, path: '/reports' },
+        { label: 'Settings', icon: Settings, path: '/settings' },
+      ],
+    },
   ]
 
   return (
@@ -28,7 +52,7 @@ const Sidebar = ({ mobileOpen, onClose }: Props) => {
       }`}
     >
       {/* Logo */}
-      <div className="flex items-center justify-between px-6 h-16 border-b border-ink-800">
+      <div className="flex items-center justify-between px-6 h-16 border-b border-ink-800 shrink-0">
         <div className="flex items-center gap-2.5">
           <div className="w-9 h-9 rounded-xl bg-energy-500 flex items-center justify-center">
             <Dumbbell size={20} className="text-ink-950" />
@@ -41,30 +65,37 @@ const Sidebar = ({ mobileOpen, onClose }: Props) => {
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 px-3 py-5 space-y-1 overflow-y-auto">
-        {menuItems.map((item) => {
-          const Icon = item.icon
-          const active = location.pathname === item.path
-          return (
-            <Link
-              key={item.path}
-              to={item.path}
-              onClick={onClose}
-              className={`flex items-center gap-3 px-4 py-2.5 rounded-xl font-medium text-sm transition-all ${
-                active
-                  ? 'bg-energy-500 text-ink-950 shadow-glow'
-                  : 'text-ink-300 hover:bg-ink-800 hover:text-white'
-              }`}
-            >
-              <Icon size={19} />
-              <span>{item.label}</span>
-            </Link>
-          )
-        })}
+      <nav className="flex-1 px-3 py-4 space-y-5 overflow-y-auto">
+        {sections.map(section => (
+          <div key={section.title}>
+            <p className="px-4 text-[10px] font-bold uppercase tracking-widest text-ink-600 mb-1">{section.title}</p>
+            <div className="space-y-0.5">
+              {section.items.map((item) => {
+                const Icon = item.icon
+                const active = location.pathname === item.path
+                return (
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    onClick={onClose}
+                    className={`flex items-center gap-3 px-4 py-2.5 rounded-xl font-medium text-sm transition-all ${
+                      active
+                        ? 'bg-energy-500 text-ink-950 shadow-glow'
+                        : 'text-ink-300 hover:bg-ink-800 hover:text-white'
+                    }`}
+                  >
+                    <Icon size={17} />
+                    <span>{item.label}</span>
+                  </Link>
+                )
+              })}
+            </div>
+          </div>
+        ))}
       </nav>
 
-      <div className="px-6 py-4 border-t border-ink-800">
-        <p className="text-xs text-ink-500">GymBook v1.0</p>
+      <div className="px-6 py-4 border-t border-ink-800 shrink-0">
+        <p className="text-xs text-ink-500">GymBook v2.0</p>
       </div>
     </aside>
   )

@@ -6,10 +6,14 @@ import { useAuthStore } from '@store/auth'
 import DashboardLayout from '@components/layout/DashboardLayout'
 import LandingLayout from '@components/layout/LandingLayout'
 
-// Pages
+// Public pages
 import LandingPage from '@pages/Landing'
 import LoginPage from '@pages/Auth/Login'
 import SignupPage from '@pages/Auth/Signup'
+import ForgotPasswordPage from '@pages/Auth/ForgotPassword'
+import ResetPasswordPage from '@pages/Auth/ResetPassword'
+
+// Dashboard pages
 import DashboardPage from '@pages/Dashboard'
 import MembersPage from '@pages/Members'
 import MembershipsPage from '@pages/Memberships'
@@ -19,16 +23,16 @@ import ClassesPage from '@pages/Classes'
 import AttendancePage from '@pages/Attendance'
 import ReportsPage from '@pages/Reports'
 import SettingsPage from '@pages/Settings'
+import StaffPage from '@pages/Staff'
+import MeasurementsPage from '@pages/Measurements'
+import LeadsPage from '@pages/Leads'
+import ExpensesPage from '@pages/Expenses'
+import LockersPage from '@pages/Lockers'
 import NotFoundPage from '@pages/NotFound'
 
-// Protected Route Component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated } = useAuthStore()
-  
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />
-  }
-  
+  if (!isAuthenticated) return <Navigate to="/login" replace />
   return <>{children}</>
 }
 
@@ -37,23 +41,19 @@ function App() {
     <Router>
       <Toaster />
       <Routes>
-        {/* Public Routes */}
+        {/* Public */}
         <Route element={<LandingLayout />}>
           <Route path="/" element={<LandingPage />} />
         </Route>
 
-        {/* Auth Routes */}
+        {/* Auth */}
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
 
-        {/* Protected Dashboard Routes */}
-        <Route
-          element={
-            <ProtectedRoute>
-              <DashboardLayout />
-            </ProtectedRoute>
-          }
-        >
+        {/* Protected Dashboard */}
+        <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/members" element={<MembersPage />} />
           <Route path="/memberships" element={<MembershipsPage />} />
@@ -63,9 +63,14 @@ function App() {
           <Route path="/attendance" element={<AttendancePage />} />
           <Route path="/reports" element={<ReportsPage />} />
           <Route path="/settings" element={<SettingsPage />} />
+          {/* New features */}
+          <Route path="/staff" element={<StaffPage />} />
+          <Route path="/measurements" element={<MeasurementsPage />} />
+          <Route path="/leads" element={<LeadsPage />} />
+          <Route path="/expenses" element={<ExpensesPage />} />
+          <Route path="/lockers" element={<LockersPage />} />
         </Route>
 
-        {/* Catch All */}
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </Router>

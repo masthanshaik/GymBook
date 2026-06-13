@@ -1,9 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import or_, func
 from typing import Optional
 from datetime import datetime
 import uuid
+import io
+import base64
 import logging
 
 from app.database import get_db
@@ -209,3 +212,46 @@ async def delete_member(
     db.commit()
     logger.info(f"Member soft-deleted: {member.id}")
     return {"message": "Member deleted successfully", "id": str(member.id)}
+
+
+@router.get("/{member_id}/qr")
+async def get_member_qr(
+    member_id: str,
+    current_user: TokenData = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Generate a QR code for member check-in"""
+    member = db.query(Member).filter(
+        Member.id == member_id,
+        Member.vendor_id == current_user.vendor_id,
+        Member.deleted_at.is_(None),
+    ).first()
+    if not member:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Member not found")
+
+    try:
+        import qrcode
+        qr_data = f"GYMBOOK:CHECKIN:{member_id}"
+        qr = qrcode.QRCode(version=1, box_size=10, border=4)
+        qr.add_data(qr_data)
+        qr.make(fit=True)
+        img = qr.make_image(fill_color="black", back_color="white")
+        buf = io.BytesIO()
+        img.save(buf, format="PNG")
+        buf.seek(0)
+        img_b64 = base64.b64encode(buf.read()).decode()
+        return {
+            "member_id": member_id,
+            "member_name": f"{member.first_name} {member.last_name or ''}".strip(),
+            "qr_data": qr_data,
+            "qr_image_base64": f"data:image/png;base64,{img_b64}",
+        }
+    except ImportError:
+        # qrcode library not installed — return the data string for frontend QR rendering
+        return {
+            "member_id": member_id,
+            "member_name": f"{member.first_name} {member.last_name or ''}".strip(),
+            "qr_data": f"GYMBOOK:CHECKIN:{member_id}",
+            "qr_image_base64": None,
+            "note": "Install qrcode[pil] for server-side QR generation",
+        }

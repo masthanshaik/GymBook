@@ -766,18 +766,211 @@ class SMSLog(Base):
 class WhatsAppLog(Base):
     """WhatsApp message logs"""
     __tablename__ = "whatsapp_logs"
-    
+
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     vendor_id = Column(UUID(as_uuid=True), ForeignKey('vendors.id'), nullable=False)
     member_id = Column(UUID(as_uuid=True), ForeignKey('members.id'), nullable=True)
-    
+
     recipient_phone = Column(String(20))
     message_body = Column(Text)
     template_name = Column(String(100))
-    
+
     status = Column(String(50))  # sent, delivered, read, failed
-    
+
     whatsapp_message_id = Column(String(100))
-    
+
     created_at = Column(DateTime, default=datetime.utcnow, index=True)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+# ===================== PASSWORD RESET =====================
+
+class PasswordResetToken(Base):
+    """Password reset tokens"""
+    __tablename__ = "password_reset_tokens"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey('users.id'), nullable=False, index=True)
+    token = Column(String(128), unique=True, nullable=False, index=True)
+    expires_at = Column(DateTime, nullable=False)
+    used = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+# ===================== BODY MEASUREMENTS =====================
+
+class BodyMeasurement(Base):
+    """Member body measurements and progress tracking"""
+    __tablename__ = "body_measurements"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    vendor_id = Column(UUID(as_uuid=True), ForeignKey('vendors.id'), nullable=False, index=True)
+    member_id = Column(UUID(as_uuid=True), ForeignKey('members.id'), nullable=False, index=True)
+
+    recorded_date = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+
+    # Weight & body composition
+    weight_kg = Column(Float)
+    height_cm = Column(Float)
+    bmi = Column(Float)
+    body_fat_pct = Column(Float)
+    muscle_mass_kg = Column(Float)
+
+    # Body measurements (cm)
+    chest_cm = Column(Float)
+    waist_cm = Column(Float)
+    hips_cm = Column(Float)
+    left_arm_cm = Column(Float)
+    right_arm_cm = Column(Float)
+    left_thigh_cm = Column(Float)
+    right_thigh_cm = Column(Float)
+
+    notes = Column(Text)
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    member = relationship("Member", backref="measurements")
+
+    __table_args__ = (
+        Index('idx_measurement_member_date', 'member_id', 'recorded_date'),
+    )
+
+
+# ===================== LEAD / CRM =====================
+
+class LeadStatus(str, enum.Enum):
+    NEW = "new"
+    CONTACTED = "contacted"
+    TRIAL = "trial"
+    CONVERTED = "converted"
+    LOST = "lost"
+
+
+class Lead(Base):
+    """Prospective member enquiries (CRM)"""
+    __tablename__ = "leads"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    vendor_id = Column(UUID(as_uuid=True), ForeignKey('vendors.id'), nullable=False, index=True)
+
+    first_name = Column(String(100), nullable=False)
+    last_name = Column(String(100))
+    email = Column(String(255))
+    phone = Column(String(20), nullable=False)
+
+    source = Column(String(100))  # walk-in, online, referral, social_media
+    interest = Column(String(255))  # weight loss, muscle gain, yoga, etc.
+
+    status = Column(Enum(LeadStatus), default=LeadStatus.NEW, index=True)
+
+    assigned_to = Column(UUID(as_uuid=True), ForeignKey('users.id'), nullable=True)
+
+    follow_up_date = Column(DateTime, nullable=True)
+    notes = Column(Text)
+
+    converted_member_id = Column(UUID(as_uuid=True), ForeignKey('members.id'), nullable=True)
+
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    __table_args__ = (
+        Index('idx_lead_vendor_status', 'vendor_id', 'status'),
+    )
+
+
+# ===================== EXPENSE TRACKING =====================
+
+class ExpenseCategory(str, enum.Enum):
+    RENT = "rent"
+    UTILITIES = "utilities"
+    EQUIPMENT = "equipment"
+    SALARIES = "salaries"
+    MAINTENANCE = "maintenance"
+    MARKETING = "marketing"
+    SUPPLIES = "supplies"
+    OTHER = "other"
+
+
+class Expense(Base):
+    """Gym expense records"""
+    __tablename__ = "expenses"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    vendor_id = Column(UUID(as_uuid=True), ForeignKey('vendors.id'), nullable=False, index=True)
+
+    title = Column(String(255), nullable=False)
+    amount = Column(Float, nullable=False)
+    category = Column(Enum(ExpenseCategory), default=ExpenseCategory.OTHER)
+    description = Column(Text)
+
+    expense_date = Column(DateTime, nullable=False, default=datetime.utcnow, index=True)
+    paid_by = Column(String(100))
+    receipt_url = Column(String(500))
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    __table_args__ = (
+        Index('idx_expense_vendor_date', 'vendor_id', 'expense_date'),
+    )
+
+
+# ===================== LOCKER MANAGEMENT =====================
+
+class LockerStatus(str, enum.Enum):
+    AVAILABLE = "available"
+    OCCUPIED = "occupied"
+    MAINTENANCE = "maintenance"
+
+
+class Locker(Base):
+    """Gym locker management"""
+    __tablename__ = "lockers"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    vendor_id = Column(UUID(as_uuid=True), ForeignKey('vendors.id'), nullable=False, index=True)
+
+    locker_number = Column(String(20), nullable=False)
+    location = Column(String(100))  # e.g., "Row A", "Male section"
+
+    status = Column(Enum(LockerStatus), default=LockerStatus.AVAILABLE, index=True)
+
+    member_id = Column(UUID(as_uuid=True), ForeignKey('members.id'), nullable=True)
+    assigned_date = Column(DateTime, nullable=True)
+    expiry_date = Column(DateTime, nullable=True)
+
+    monthly_fee = Column(Float, default=0)
+    notes = Column(Text)
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    member = relationship("Member", backref="lockers")
+
+    __table_args__ = (
+        UniqueConstraint('vendor_id', 'locker_number', name='uq_vendor_locker_number'),
+        Index('idx_locker_vendor_status', 'vendor_id', 'status'),
+    )
+
+
+# ===================== CLASS WAITLIST =====================
+
+class ClassWaitlist(Base):
+    """Waitlist for full classes"""
+    __tablename__ = "class_waitlist"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    class_id = Column(UUID(as_uuid=True), ForeignKey('classes.id'), nullable=False, index=True)
+    member_id = Column(UUID(as_uuid=True), ForeignKey('members.id'), nullable=False, index=True)
+    vendor_id = Column(UUID(as_uuid=True), ForeignKey('vendors.id'), nullable=False, index=True)
+
+    position = Column(Integer, nullable=False)
+    joined_at = Column(DateTime, default=datetime.utcnow)
+    notified = Column(Boolean, default=False)
+
+    class_ref = relationship("Class", backref="waitlist")
+    member = relationship("Member", backref="waitlist_entries")
+
+    __table_args__ = (
+        UniqueConstraint('class_id', 'member_id', name='uq_class_waitlist_member'),
+    )

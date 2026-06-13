@@ -16,7 +16,7 @@ git commit -m "GymBook"
 ```
 Then create an empty repo on github.com and push:
 ```bash
-git remote add origin https://github.com/masthanshaik/gymx.git
+git remote add origin https://github.com/masthanshaik/GymBook.git
 git branch -M main
 git push -u origin main
 ```
@@ -25,7 +25,7 @@ git push -u origin main
 
 ## STEP 1 — Create the Blueprint on Render
 
-1. Go to https://render.com → sign up / log in (free)
+    1. Go to https://render.com → sign up / log in (free)
 2. Click **New** → **Blueprint**
 3. Connect your GitHub and pick the `gymbook` repo
 4. Render reads `render.yaml` and shows 3 services:

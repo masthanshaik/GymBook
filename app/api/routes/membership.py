@@ -312,3 +312,58 @@ async def cancel_membership(
     m.is_auto_renew = False
     db.commit()
     return {"message": "Membership cancelled", "id": str(m.id)}
+
+
+@router.post("/{membership_id}/freeze")
+async def freeze_membership(
+    membership_id: str,
+    data: dict = {},
+    current_user: TokenData = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Freeze a membership (pause the expiry countdown)"""
+    m = db.query(Membership).filter(
+        Membership.id == membership_id,
+        Membership.vendor_id == current_user.vendor_id,
+    ).first()
+    if not m:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Membership not found")
+
+    if m.is_frozen:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Membership is already frozen")
+
+    m.is_frozen = True
+    m.frozen_from = datetime.utcnow()
+    m.frozen_till = data.get("frozen_till") if data else None
+    m.status = MembershipStatus.SUSPENDED
+    db.commit()
+    db.refresh(m)
+    return {**_membership(m), "is_frozen": m.is_frozen, "frozen_from": m.frozen_from, "frozen_till": m.frozen_till}
+
+
+@router.post("/{membership_id}/unfreeze")
+async def unfreeze_membership(
+    membership_id: str,
+    current_user: TokenData = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Unfreeze a membership and extend the end date by the frozen duration"""
+    m = db.query(Membership).filter(
+        Membership.id == membership_id,
+        Membership.vendor_id == current_user.vendor_id,
+    ).first()
+    if not m:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Membership not found")
+
+    if not m.is_frozen:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Membership is not frozen")
+
+    # Extend the end date by the number of days frozen
+    frozen_days = (datetime.utcnow() - m.frozen_from).days if m.frozen_from else 0
+    m.ended_date = m.ended_date + timedelta(days=frozen_days)
+    m.is_frozen = False
+    m.frozen_till = None
+    m.status = MembershipStatus.ACTIVE
+    db.commit()
+    db.refresh(m)
+    return {**_membership(m), "frozen_days_added": frozen_days}

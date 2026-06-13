@@ -237,6 +237,196 @@ class APIClient {
   exportReportExcel(params?: any) {
     return this.client.get('/reports/export/excel', { params })
   }
+
+  getPlanDistribution() {
+    return this.client.get('/reports/plan-distribution')
+  }
+
+  getFinancialExtended(days = 30) {
+    return this.client.get('/reports/financial-extended', { params: { days } })
+  }
+
+  getRetentionReport() {
+    return this.client.get('/reports/retention')
+  }
+
+  getLeadsFunnel() {
+    return this.client.get('/reports/leads-funnel')
+  }
+
+  // Body Measurements
+  getMemberMeasurements(memberId: string) {
+    return this.client.get(`/measurements/member/${memberId}`)
+  }
+
+  addMeasurement(memberId: string, data: any) {
+    return this.client.post(`/measurements/member/${memberId}`, data)
+  }
+
+  updateMeasurement(measurementId: string, data: any) {
+    return this.client.put(`/measurements/${measurementId}`, data)
+  }
+
+  deleteMeasurement(measurementId: string) {
+    return this.client.delete(`/measurements/${measurementId}`)
+  }
+
+  // CRM Leads
+  getLeads(params?: any) {
+    return this.client.get('/leads/', { params })
+  }
+
+  createLead(data: any) {
+    return this.client.post('/leads/', data)
+  }
+
+  getLead(leadId: string) {
+    return this.client.get(`/leads/${leadId}`)
+  }
+
+  updateLead(leadId: string, data: any) {
+    return this.client.put(`/leads/${leadId}`, data)
+  }
+
+  convertLead(leadId: string) {
+    return this.client.post(`/leads/${leadId}/convert`)
+  }
+
+  deleteLead(leadId: string) {
+    return this.client.delete(`/leads/${leadId}`)
+  }
+
+  getLeadStats() {
+    return this.client.get('/leads/stats/summary')
+  }
+
+  // Expenses
+  getExpenses(params?: any) {
+    return this.client.get('/expenses/', { params })
+  }
+
+  createExpense(data: any) {
+    return this.client.post('/expenses/', data)
+  }
+
+  updateExpense(expenseId: string, data: any) {
+    return this.client.put(`/expenses/${expenseId}`, data)
+  }
+
+  deleteExpense(expenseId: string) {
+    return this.client.delete(`/expenses/${expenseId}`)
+  }
+
+  getExpenseSummary(days = 30) {
+    return this.client.get('/expenses/summary', { params: { days } })
+  }
+
+  // Lockers
+  getLockers(params?: any) {
+    return this.client.get('/lockers/', { params })
+  }
+
+  createLocker(data: any) {
+    return this.client.post('/lockers/', data)
+  }
+
+  assignLocker(lockerId: string, data: any) {
+    return this.client.post(`/lockers/${lockerId}/assign`, data)
+  }
+
+  releaseLocker(lockerId: string) {
+    return this.client.post(`/lockers/${lockerId}/release`)
+  }
+
+  updateLocker(lockerId: string, data: any) {
+    return this.client.put(`/lockers/${lockerId}`, data)
+  }
+
+  deleteLocker(lockerId: string) {
+    return this.client.delete(`/lockers/${lockerId}`)
+  }
+
+  // Staff Management
+  getStaff() {
+    return this.client.get('/staff/')
+  }
+
+  createStaff(data: any) {
+    return this.client.post('/staff/', data)
+  }
+
+  updateStaff(staffId: string, data: any) {
+    return this.client.put(`/staff/${staffId}`, data)
+  }
+
+  deleteStaff(staffId: string) {
+    return this.client.delete(`/staff/${staffId}`)
+  }
+
+  // Membership Freeze
+  freezeMembership(membershipId: string, data?: any) {
+    return this.client.post(`/memberships/${membershipId}/freeze`, data || {})
+  }
+
+  unfreezeMembership(membershipId: string) {
+    return this.client.post(`/memberships/${membershipId}/unfreeze`)
+  }
+
+  // QR Code
+  getMemberQR(memberId: string) {
+    return this.client.get(`/members/${memberId}/qr`)
+  }
+
+  // Class Waitlist
+  getClassWaitlist(classId: string) {
+    return this.client.get(`/classes/${classId}/waitlist`)
+  }
+
+  removeFromWaitlist(classId: string, memberId: string) {
+    return this.client.delete(`/classes/${classId}/waitlist/${memberId}`)
+  }
+
+  // Developer Portal
+  getApiKeys() {
+    return this.client.get('/developers/api-keys')
+  }
+
+  createApiKey(data: any) {
+    return this.client.post('/developers/api-keys', data)
+  }
+
+  deleteApiKey(keyId: string) {
+    return this.client.delete(`/developers/api-keys/${keyId}`)
+  }
+
+  getWebhooks() {
+    return this.client.get('/developers/webhooks')
+  }
+
+  createWebhook(data: any) {
+    return this.client.post('/developers/webhooks', data)
+  }
+
+  updateWebhook(webhookId: string, data: any) {
+    return this.client.put(`/developers/webhooks/${webhookId}`, data)
+  }
+
+  deleteWebhook(webhookId: string) {
+    return this.client.delete(`/developers/webhooks/${webhookId}`)
+  }
+
+  getApiUsage() {
+    return this.client.get('/developers/usage')
+  }
+
+  // Password Reset
+  forgotPassword(email: string) {
+    return this.client.post('/auth/forgot-password', { email })
+  }
+
+  resetPassword(token: string, newPassword: string) {
+    return this.client.post('/auth/reset-password', { token, new_password: newPassword })
+  }
 }
 
 export const apiClient = new APIClient()

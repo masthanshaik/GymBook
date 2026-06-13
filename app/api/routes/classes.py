@@ -5,7 +5,7 @@ import uuid
 import logging
 
 from app.database import get_db
-from app.models import Class, ClassSchedule, ClassMember, Member
+from app.models import Class, ClassSchedule, ClassMember, Member, ClassWaitlist
 from app.schemas import ClassCreate, ClassUpdate, ClassScheduleCreate
 from app.security import get_current_user, TokenData
 
@@ -188,6 +188,27 @@ async def enroll_member(
     if existing:
         raise HTTPException(status.HTTP_409_CONFLICT, "Member already enrolled")
 
+    if cls.current_enrollment >= cls.capacity:
+        # Add to waitlist instead
+        on_waitlist = db.query(ClassWaitlist).filter(
+            ClassWaitlist.class_id == cls.id,
+            ClassWaitlist.member_id == member.id,
+        ).first()
+        if on_waitlist:
+            raise HTTPException(status.HTTP_409_CONFLICT, "Member already on waitlist")
+
+        position = db.query(ClassWaitlist).filter(ClassWaitlist.class_id == cls.id).count() + 1
+        waitlist_entry = ClassWaitlist(
+            id=uuid.uuid4(),
+            class_id=cls.id,
+            member_id=member.id,
+            vendor_id=current_user.vendor_id,
+            position=position,
+        )
+        db.add(waitlist_entry)
+        db.commit()
+        return {"message": "Class is full. Member added to waitlist", "waitlist_position": position}
+
     enrollment = ClassMember(
         id=uuid.uuid4(),
         class_id=cls.id,
@@ -198,3 +219,64 @@ async def enroll_member(
     cls.current_enrollment += 1
     db.commit()
     return {"message": "Member enrolled", "class_id": str(cls.id), "member_id": str(member.id)}
+
+
+@router.get("/{class_id}/waitlist")
+async def get_waitlist(
+    class_id: str,
+    current_user: TokenData = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    cls = db.query(Class).filter(
+        Class.id == class_id,
+        Class.vendor_id == current_user.vendor_id,
+    ).first()
+    if not cls:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Class not found")
+
+    entries = db.query(ClassWaitlist).filter(
+        ClassWaitlist.class_id == class_id,
+    ).order_by(ClassWaitlist.position).all()
+
+    result = []
+    for entry in entries:
+        m = db.query(Member).filter(Member.id == entry.member_id).first()
+        result.append({
+            "id": str(entry.id),
+            "member_id": str(entry.member_id),
+            "member_name": f"{m.first_name} {m.last_name or ''}".strip() if m else "Unknown",
+            "member_phone": m.phone if m else None,
+            "position": entry.position,
+            "joined_at": entry.joined_at,
+        })
+    return result
+
+
+@router.delete("/{class_id}/waitlist/{member_id}")
+async def remove_from_waitlist(
+    class_id: str,
+    member_id: str,
+    current_user: TokenData = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    entry = db.query(ClassWaitlist).filter(
+        ClassWaitlist.class_id == class_id,
+        ClassWaitlist.member_id == member_id,
+        ClassWaitlist.vendor_id == current_user.vendor_id,
+    ).first()
+    if not entry:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Waitlist entry not found")
+
+    removed_pos = entry.position
+    db.delete(entry)
+
+    # Re-number remaining positions
+    remaining = db.query(ClassWaitlist).filter(
+        ClassWaitlist.class_id == class_id,
+        ClassWaitlist.position > removed_pos,
+    ).all()
+    for e in remaining:
+        e.position -= 1
+
+    db.commit()
+    return {"message": "Removed from waitlist"}

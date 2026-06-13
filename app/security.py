@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 pwd_context = CryptContext(
     schemes=["bcrypt"],
     deprecated="auto",
-    bcrypt__rounds=12
+    bcrypt__rounds=10
 )
 
 # Security scheme
