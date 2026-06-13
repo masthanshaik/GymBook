@@ -1,0 +1,130 @@
+import { useEffect, useState } from 'react'
+import { Plus, X, CreditCard } from 'lucide-react'
+import toast from 'react-hot-toast'
+import { apiClient } from '@services/api'
+
+interface Member { id: string; first_name: string; last_name?: string }
+interface Payment { id: string; amount: number; status: string; payment_method: string; purpose?: string; initiated_at: string }
+
+const badge = (s: string) => {
+  const m: Record<string, string> = {
+    completed: 'bg-energy-100 text-energy-800', pending: 'bg-flame-100 text-flame-700',
+    refunded: 'bg-ink-100 text-ink-600', failed: 'bg-red-100 text-red-700',
+  }
+  return m[s] || 'bg-ink-100 text-ink-600'
+}
+
+const Payments = () => {
+  const [members, setMembers] = useState<Member[]>([])
+  const [selectedMember, setSelectedMember] = useState('')
+  const [history, setHistory] = useState<Payment[]>([])
+  const [loading, setLoading] = useState(true)
+  const [showModal, setShowModal] = useState(false)
+  const [form, setForm] = useState({ member_id: '', amount: 0, payment_method: 'cash', purpose: 'new_membership' })
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    apiClient.getMembers(1, 100).then((res) => setMembers(res.data.items))
+      .catch(() => toast.error('Could not load members')).finally(() => setLoading(false))
+  }, [])
+
+  const loadHistory = (memberId: string) => {
+    setSelectedMember(memberId)
+    if (!memberId) { setHistory([]); return }
+    apiClient.getPaymentHistory(memberId).then((res) => setHistory(res.data.items)).catch(() => toast.error('Could not load history'))
+  }
+
+  const record = async () => {
+    if (!form.member_id || form.amount <= 0) { toast.error('Select member and enter amount'); return }
+    setSaving(true)
+    try {
+      await apiClient.initiatePayment(form); toast.success('Payment recorded'); setShowModal(false)
+      if (selectedMember === form.member_id) loadHistory(selectedMember)
+      setForm({ member_id: '', amount: 0, payment_method: 'cash', purpose: 'new_membership' })
+    } catch (e: any) { toast.error(e.response?.data?.detail || 'Failed') } finally { setSaving(false) }
+  }
+
+  const refund = async (id: string) => {
+    if (!confirm('Refund this payment?')) return
+    try { await apiClient.refundPayment(id); toast.success('Refunded'); loadHistory(selectedMember) }
+    catch (e: any) { toast.error(e.response?.data?.detail || 'Refund failed') }
+  }
+
+  return (
+    <div>
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-6">
+        <div>
+          <h1 className="text-2xl font-extrabold text-ink-900">Payments</h1>
+          <p className="text-ink-500 text-sm">Record and track member payments</p>
+        </div>
+        <button onClick={() => setShowModal(true)} className="btn-primary flex items-center justify-center gap-2">
+          <Plus size={18} /> Record Payment
+        </button>
+      </div>
+
+      <div className="card p-4 mb-5">
+        <label className="block text-sm font-medium text-ink-700 mb-2">View history for member</label>
+        <select className="input" value={selectedMember} onChange={(e) => loadHistory(e.target.value)} disabled={loading}>
+          <option value="">Select a member...</option>
+          {members.map((m) => <option key={m.id} value={m.id}>{m.first_name} {m.last_name}</option>)}
+        </select>
+      </div>
+
+      <div className="card overflow-hidden">
+        {!selectedMember ? (
+          <div className="p-12 text-center"><CreditCard size={40} className="text-ink-300 mx-auto mb-3" /><p className="text-ink-500">Select a member to view their payment history.</p></div>
+        ) : history.length === 0 ? (
+          <p className="text-ink-500 text-center py-10">No payments for this member yet.</p>
+        ) : (
+          <table className="w-full">
+            <thead><tr className="border-b border-ink-100 bg-ink-50">
+              <th className="text-left py-3 px-5 font-semibold text-ink-600 text-sm">Amount</th>
+              <th className="text-left py-3 px-5 font-semibold text-ink-600 text-sm">Method</th>
+              <th className="text-left py-3 px-5 font-semibold text-ink-600 text-sm hidden sm:table-cell">Purpose</th>
+              <th className="text-left py-3 px-5 font-semibold text-ink-600 text-sm">Status</th>
+              <th className="text-left py-3 px-5 font-semibold text-ink-600 text-sm">Action</th>
+            </tr></thead>
+            <tbody>
+              {history.map((p) => (
+                <tr key={p.id} className="border-b border-ink-50 hover:bg-ink-50">
+                  <td className="py-3 px-5 font-bold text-ink-900">₹{p.amount.toLocaleString('en-IN')}</td>
+                  <td className="py-3 px-5 capitalize text-ink-700">{p.payment_method}</td>
+                  <td className="py-3 px-5 text-ink-700 hidden sm:table-cell">{p.purpose?.replace('_', ' ')}</td>
+                  <td className="py-3 px-5"><span className={`badge ${badge(p.status)} capitalize`}>{p.status}</span></td>
+                  <td className="py-3 px-5">{p.status === 'completed' && <button onClick={() => refund(p.id)} className="text-red-500 hover:text-red-700 font-medium text-sm">Refund</button>}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      {showModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md">
+            <div className="flex justify-between items-center mb-5">
+              <h2 className="text-xl font-bold text-ink-900">Record Payment</h2>
+              <button onClick={() => setShowModal(false)} className="text-ink-400 hover:text-ink-700"><X size={22} /></button>
+            </div>
+            <div className="space-y-3">
+              <select className="input" value={form.member_id} onChange={(e) => setForm({ ...form, member_id: e.target.value })}>
+                <option value="">Select member...</option>
+                {members.map((m) => <option key={m.id} value={m.id}>{m.first_name} {m.last_name}</option>)}
+              </select>
+              <input type="number" className="input" placeholder="Amount ₹ *" value={form.amount} onChange={(e) => setForm({ ...form, amount: Number(e.target.value) })} />
+              <select className="input" value={form.payment_method} onChange={(e) => setForm({ ...form, payment_method: e.target.value })}>
+                <option value="cash">Cash</option><option value="upi">UPI</option>
+              </select>
+              <select className="input" value={form.purpose} onChange={(e) => setForm({ ...form, purpose: e.target.value })}>
+                <option value="new_membership">New Membership</option><option value="membership_renewal">Renewal</option><option value="other">Other</option>
+              </select>
+            </div>
+            <button onClick={record} disabled={saving} className="btn-primary w-full mt-5 disabled:opacity-50">{saving ? 'Recording...' : 'Record Payment'}</button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+export default Payments

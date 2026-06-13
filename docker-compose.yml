@@ -1,0 +1,133 @@
+version: '3.9'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: gymbook_postgres
+    environment:
+      POSTGRES_USER: gymbook_user
+      POSTGRES_PASSWORD: gymbook_password
+      POSTGRES_DB: gymbook_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    #ports:
+      #- "5432:5432"
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gymbook_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: gymbook_redis
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # FastAPI Backend
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: gymbook_api
+    environment:
+      DATABASE_URL: postgresql://gymbook_user:gymbook_password@postgres:5432/gymbook_db
+      REDIS_URL: redis://redis:6379/0
+      DEBUG: "True"
+      SECRET_KEY: "dev-secret-key-min-32-characters-long-for-testing"
+      CORS_ORIGINS: '["http://localhost:3000", "http://localhost:8000", "http://127.0.0.1:3000"]'
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # React Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: gymbook_frontend
+    environment:
+      VITE_API_URL: http://localhost:8000/api/v1
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+
+  # Celery Worker (optional, for background jobs)
+  celery_worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: gymbook_celery_worker
+    environment:
+      DATABASE_URL: postgresql://gymbook_user:gymbook_password@postgres:5432/gymbook_db
+      CELERY_BROKER_URL: redis://redis:6379/1
+      CELERY_RESULT_BACKEND: redis://redis:6379/2
+      DEBUG: "True"
+    volumes:
+      - .:/app
+    depends_on:
+      - postgres
+      - redis
+      - api
+    command: celery -A app.tasks worker --loglevel=info
+    profiles:
+      - with-celery
+
+  # Adminer (optional, for database GUI)
+  adminer:
+    image: adminer
+    container_name: gymbook_adminer
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+    profiles:
+      - with-adminer
+
+  # Redis Commander (optional, for Redis GUI)
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: gymbook_redis_commander
+    environment:
+      REDIS_HOSTS: local:redis:6379
+    ports:
+      - "8081:8081"
+    depends_on:
+      - redis
+    profiles:
+      - with-redis-commander
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  default:
+    name: gymbook_network
