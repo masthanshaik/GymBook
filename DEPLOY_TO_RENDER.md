@@ -16,7 +16,7 @@ git commit -m "GymBook"
 ```
 Then create an empty repo on github.com and push:
 ```bash
-git remote add origin https://github.com/YOUR_USERNAME/gymbook.git
+git remote add origin https://github.com/masthanshaik/gymx.git
 git branch -M main
 git push -u origin main
 ```
