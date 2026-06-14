@@ -1,4 +1,4 @@
-import { Menu, LogOut } from 'lucide-react'
+import { Menu, LogOut, Bell, Search } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@store/auth'
 
@@ -20,29 +20,47 @@ const Header = ({ onMenuClick }: Props) => {
     : 'U'
 
   return (
-    <header className="h-16 bg-white border-b border-ink-100 flex items-center justify-between px-4 sm:px-6 shrink-0">
-      <button onClick={onMenuClick} className="lg:hidden text-ink-600 hover:text-ink-900">
-        <Menu size={24} />
-      </button>
-
-      <div className="hidden lg:block" />
-
+    <header className="h-16 bg-white border-b border-slate-200/70 flex items-center justify-between px-4 sm:px-6 shrink-0 sticky top-0 z-30">
       <div className="flex items-center gap-3">
-        <div className="text-right hidden sm:block">
-          <p className="text-sm font-semibold text-ink-900">
-            {user?.first_name} {user?.last_name}
-          </p>
-          <p className="text-xs text-ink-500 capitalize">{user?.role?.replace('_', ' ') || 'Owner'}</p>
+        <button
+          onClick={onMenuClick}
+          className="lg:hidden p-2 rounded-xl text-slate-500 hover:bg-slate-100 hover:text-slate-900 transition"
+        >
+          <Menu size={20} />
+        </button>
+
+        <div className="hidden sm:flex items-center gap-2.5 bg-slate-100 rounded-xl px-3.5 py-2 w-56 xl:w-72">
+          <Search size={15} className="text-slate-400 shrink-0" />
+          <span className="text-sm text-slate-400 select-none">Search...</span>
         </div>
-        <div className="w-10 h-10 rounded-full bg-ink-900 text-energy-400 flex items-center justify-center font-bold text-sm">
-          {initials}
+      </div>
+
+      <div className="flex items-center gap-1.5">
+        <button className="relative p-2 rounded-xl text-slate-500 hover:bg-slate-100 hover:text-slate-900 transition">
+          <Bell size={18} />
+          <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-orange-500 rounded-full" />
+        </button>
+
+        <div className="hidden sm:flex items-center gap-2.5 ml-1 pl-3 border-l border-slate-200">
+          <div className="text-right">
+            <p className="text-xs font-semibold text-slate-800 leading-tight">
+              {user?.first_name} {user?.last_name}
+            </p>
+            <p className="text-[10px] text-slate-500 capitalize leading-tight">
+              {user?.role?.replace('_', ' ') || 'Owner'}
+            </p>
+          </div>
+          <div className="w-8 h-8 rounded-full bg-orange-500 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-sm">
+            {initials}
+          </div>
         </div>
+
         <button
           onClick={doLogout}
-          className="text-ink-400 hover:text-flame-600 transition p-2"
+          className="p-2 rounded-xl text-slate-400 hover:bg-red-50 hover:text-red-500 transition ml-1"
           title="Log out"
         >
-          <LogOut size={20} />
+          <LogOut size={18} />
         </button>
       </div>
     </header>

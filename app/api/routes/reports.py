@@ -69,6 +69,48 @@ async def dashboard_summary(
     }
 
 
+@router.get("/birthdays")
+async def upcoming_birthdays(
+    days: int = 7,
+    current_user: TokenData = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Members with birthdays in the next N days (or today)."""
+    vid = current_user.vendor_id
+    today = datetime.utcnow().date()
+    members = db.query(Member).filter(
+        Member.vendor_id == vid,
+        Member.deleted_at.is_(None),
+        Member.date_of_birth.isnot(None),
+    ).all()
+
+    result = []
+    for m in members:
+        dob = m.date_of_birth.date() if hasattr(m.date_of_birth, 'date') else m.date_of_birth
+        try:
+            this_year_bday = dob.replace(year=today.year)
+        except ValueError:
+            this_year_bday = dob.replace(year=today.year, day=28)
+        if this_year_bday < today:
+            try:
+                this_year_bday = dob.replace(year=today.year + 1)
+            except ValueError:
+                this_year_bday = dob.replace(year=today.year + 1, day=28)
+        days_until = (this_year_bday - today).days
+        if 0 <= days_until <= days:
+            meta = m.extra_metadata or {}
+            result.append({
+                "id": str(m.id),
+                "first_name": m.first_name,
+                "last_name": m.last_name or '',
+                "photo": meta.get("photo"),
+                "days_until": days_until,
+                "date_of_birth": dob.isoformat(),
+            })
+    result.sort(key=lambda x: x["days_until"])
+    return result
+
+
 @router.get("/financial")
 async def financial_report(
     current_user: TokenData = Depends(get_current_user),

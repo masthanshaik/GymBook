@@ -14,9 +14,9 @@ const ResetPassword = () => {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!token) return toast.error('Enter the reset token')
-    if (password.length < 8) return toast.error('Password must be at least 8 characters')
-    if (password !== confirm) return toast.error('Passwords do not match')
+    if (!token) { toast.error('Enter the reset token'); return }
+    if (password.length < 8) { toast.error('Password must be at least 8 characters'); return }
+    if (password !== confirm) { toast.error('Passwords do not match'); return }
     setLoading(true)
     try {
       await apiClient.resetPassword(token, password)

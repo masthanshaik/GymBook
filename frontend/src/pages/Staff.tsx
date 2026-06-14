@@ -52,8 +52,8 @@ const Staff = () => {
   }
 
   const save = async () => {
-    if (!form.first_name || !form.email) return toast.error('Name and email are required')
-    if (!editingId && form.password.length < 8) return toast.error('Password must be at least 8 characters')
+    if (!form.first_name || !form.email) { toast.error('Name and email are required'); return }
+    if (!editingId && form.password.length < 8) { toast.error('Password must be at least 8 characters'); return }
     setSaving(true)
     try {
       const payload: any = { ...form }

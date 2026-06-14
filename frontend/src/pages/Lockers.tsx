@@ -41,7 +41,7 @@ const Lockers = () => {
   }, [])
 
   const addLocker = async () => {
-    if (!newLocker.locker_number) return toast.error('Locker number is required')
+    if (!newLocker.locker_number) { toast.error('Locker number is required'); return }
     setSaving(true)
     try {
       await apiClient.createLocker({ ...newLocker, monthly_fee: parseFloat(newLocker.monthly_fee || '0') })
@@ -53,7 +53,7 @@ const Lockers = () => {
   }
 
   const assign = async () => {
-    if (!showAssign || !assignForm.member_id) return toast.error('Select a member')
+    if (!showAssign || !assignForm.member_id) { toast.error('Select a member'); return }
     setSaving(true)
     try {
       const payload: any = { member_id: assignForm.member_id, monthly_fee: parseFloat(assignForm.monthly_fee || String(showAssign.monthly_fee)) }

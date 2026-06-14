@@ -974,3 +974,211 @@ class ClassWaitlist(Base):
     __table_args__ = (
         UniqueConstraint('class_id', 'member_id', name='uq_class_waitlist_member'),
     )
+
+
+# ===================== COUPONS =====================
+
+class DiscountType(str, enum.Enum):
+    PERCENTAGE = "percentage"
+    FIXED = "fixed"
+
+
+class Coupon(Base):
+    """Promo codes and discount coupons"""
+    __tablename__ = "coupons"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    vendor_id = Column(UUID(as_uuid=True), ForeignKey('vendors.id'), nullable=False, index=True)
+
+    code = Column(String(50), nullable=False)
+    description = Column(String(255))
+
+    discount_type = Column(Enum(DiscountType), nullable=False, default=DiscountType.PERCENTAGE)
+    discount_value = Column(Float, nullable=False)
+
+    min_purchase_amount = Column(Float, default=0)
+    max_uses = Column(Integer, nullable=True)
+    used_count = Column(Integer, default=0)
+
+    valid_from = Column(DateTime, default=datetime.utcnow)
+    valid_till = Column(DateTime, nullable=True)
+
+    is_active = Column(Boolean, default=True, index=True)
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    __table_args__ = (
+        UniqueConstraint('vendor_id', 'code', name='uq_vendor_coupon_code'),
+        Index('idx_coupon_vendor_active', 'vendor_id', 'is_active'),
+    )
+
+
+# ===================== FITNESS GOALS =====================
+
+class GoalType(str, enum.Enum):
+    WEIGHT_LOSS = "weight_loss"
+    MUSCLE_GAIN = "muscle_gain"
+    ENDURANCE = "endurance"
+    FLEXIBILITY = "flexibility"
+    CUSTOM = "custom"
+
+
+class GoalStatus(str, enum.Enum):
+    ACTIVE = "active"
+    ACHIEVED = "achieved"
+    ABANDONED = "abandoned"
+
+
+class FitnessGoal(Base):
+    """Member fitness goals and progress tracking"""
+    __tablename__ = "fitness_goals"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    vendor_id = Column(UUID(as_uuid=True), ForeignKey('vendors.id'), nullable=False, index=True)
+    member_id = Column(UUID(as_uuid=True), ForeignKey('members.id'), nullable=False, index=True)
+
+    goal_type = Column(Enum(GoalType), nullable=False, default=GoalType.CUSTOM)
+    title = Column(String(255), nullable=False)
+    description = Column(Text)
+
+    target_value = Column(Float)
+    target_unit = Column(String(50))
+    current_value = Column(Float)
+
+    deadline = Column(DateTime, nullable=True)
+    status = Column(Enum(GoalStatus), default=GoalStatus.ACTIVE, index=True)
+
+    notes = Column(Text)
+
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    member = relationship("Member", backref="goals")
+
+    __table_args__ = (
+        Index('idx_goal_member_status', 'member_id', 'status'),
+    )
+
+
+# ===================== WORKOUT PLANS =====================
+
+class WorkoutPlan(Base):
+    """Reusable workout plan templates created by trainers/owners"""
+    __tablename__ = "workout_plans"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    vendor_id = Column(UUID(as_uuid=True), ForeignKey('vendors.id'), nullable=False, index=True)
+    name = Column(String(255), nullable=False)
+    description = Column(Text)
+    goal_type = Column(String(50))  # weight_loss, muscle_gain, endurance, flexibility, general
+    level = Column(String(50), default="beginner")  # beginner, intermediate, advanced
+    duration_weeks = Column(Integer, default=4)
+    sessions_per_week = Column(Integer, default=3)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    exercises = relationship("WorkoutExercise", backref="plan", cascade="all, delete-orphan", order_by="WorkoutExercise.day_number, WorkoutExercise.order_index")
+
+
+class WorkoutExercise(Base):
+    """Individual exercises within a workout plan"""
+    __tablename__ = "workout_exercises"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    plan_id = Column(UUID(as_uuid=True), ForeignKey('workout_plans.id'), nullable=False, index=True)
+    day_number = Column(Integer, nullable=False)  # 1–7
+    exercise_name = Column(String(255), nullable=False)
+    sets = Column(Integer)
+    reps = Column(String(50))  # "10–12" or "to failure"
+    duration_seconds = Column(Integer)
+    rest_seconds = Column(Integer, default=60)
+    notes = Column(Text)
+    order_index = Column(Integer, default=0)
+
+
+class MemberWorkoutPlan(Base):
+    """Assignment of a workout plan to a specific member"""
+    __tablename__ = "member_workout_plans"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    vendor_id = Column(UUID(as_uuid=True), ForeignKey('vendors.id'), nullable=False, index=True)
+    member_id = Column(UUID(as_uuid=True), ForeignKey('members.id'), nullable=False, index=True)
+    plan_id = Column(UUID(as_uuid=True), ForeignKey('workout_plans.id'), nullable=False)
+    trainer_id = Column(UUID(as_uuid=True), ForeignKey('users.id'), nullable=True)
+    started_date = Column(DateTime, default=datetime.utcnow)
+    ended_date = Column(DateTime, nullable=True)
+    status = Column(String(20), default="active")  # active, completed, paused
+    notes = Column(Text)
+    assigned_at = Column(DateTime, default=datetime.utcnow)
+
+
+# ===================== DIET PLANS =====================
+
+class DietPlan(Base):
+    """Reusable nutrition/diet plan templates"""
+    __tablename__ = "diet_plans"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    vendor_id = Column(UUID(as_uuid=True), ForeignKey('vendors.id'), nullable=False, index=True)
+    name = Column(String(255), nullable=False)
+    description = Column(Text)
+    goal_type = Column(String(50))
+    daily_calories = Column(Integer)
+    protein_grams = Column(Float)
+    carbs_grams = Column(Float)
+    fat_grams = Column(Float)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    meals = relationship("DietPlanMeal", backref="plan", cascade="all, delete-orphan")
+
+
+class DietPlanMeal(Base):
+    """Individual meals within a diet plan"""
+    __tablename__ = "diet_plan_meals"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    plan_id = Column(UUID(as_uuid=True), ForeignKey('diet_plans.id'), nullable=False, index=True)
+    meal_name = Column(String(100), nullable=False)  # Breakfast, Lunch, Dinner, Snack
+    food_items = Column(JSON, default=list)  # [{"name": "Oats", "quantity": "100g"}]
+    calories = Column(Integer)
+    protein = Column(Float)
+    carbs = Column(Float)
+    fat = Column(Float)
+    timing = Column(String(50))  # "7:00 AM"
+    notes = Column(Text)
+
+
+class MemberDietPlan(Base):
+    """Assignment of a diet plan to a specific member"""
+    __tablename__ = "member_diet_plans"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    vendor_id = Column(UUID(as_uuid=True), ForeignKey('vendors.id'), nullable=False, index=True)
+    member_id = Column(UUID(as_uuid=True), ForeignKey('members.id'), nullable=False, index=True)
+    plan_id = Column(UUID(as_uuid=True), ForeignKey('diet_plans.id'), nullable=False)
+    trainer_id = Column(UUID(as_uuid=True), ForeignKey('users.id'), nullable=True)
+    started_date = Column(DateTime, default=datetime.utcnow)
+    ended_date = Column(DateTime, nullable=True)
+    status = Column(String(20), default="active")
+    notes = Column(Text)
+    assigned_at = Column(DateTime, default=datetime.utcnow)
+
+
+# ===================== TRAINER ASSIGNMENTS =====================
+
+class TrainerMemberAssignment(Base):
+    """Links a personal trainer (User) to a member"""
+    __tablename__ = "trainer_member_assignments"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    vendor_id = Column(UUID(as_uuid=True), ForeignKey('vendors.id'), nullable=False, index=True)
+    trainer_id = Column(UUID(as_uuid=True), ForeignKey('users.id'), nullable=False)
+    member_id = Column(UUID(as_uuid=True), ForeignKey('members.id'), nullable=False)
+    assigned_date = Column(DateTime, default=datetime.utcnow)
+    end_date = Column(DateTime, nullable=True)
+    is_active = Column(Boolean, default=True, index=True)
+    monthly_fee = Column(Float, nullable=True)
+    notes = Column(Text)
+    created_at = Column(DateTime, default=datetime.utcnow)

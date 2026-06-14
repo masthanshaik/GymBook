@@ -45,7 +45,7 @@ const Expenses = () => {
   }
 
   const save = async () => {
-    if (!form.title || !form.amount) return toast.error('Title and amount are required')
+    if (!form.title || !form.amount) { toast.error('Title and amount are required'); return }
     setSaving(true)
     try {
       const payload: any = { ...form, amount: parseFloat(form.amount) }

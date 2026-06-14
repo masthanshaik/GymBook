@@ -47,7 +47,7 @@ def _serialize(m: Member) -> dict:
 @router.get("/")
 async def list_members(
     page: int = Query(1, ge=1),
-    page_size: int = Query(20, ge=1, le=100),
+    page_size: int = Query(20, ge=1, le=500),
     search: Optional[str] = None,
     status_filter: Optional[str] = Query(None, alias="status"),
     current_user: TokenData = Depends(get_current_user),

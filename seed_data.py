@@ -20,6 +20,9 @@ from app.models import (
     Vendor, VendorSettings, User, Member, MembershipPlan, Membership,
     Payment, Class, Attendance, UserRole, MembershipStatus,
     PaymentStatus, PaymentMethod, AttendanceStatus,
+    BodyMeasurement, FitnessGoal, ClassMember, ClassWaitlist,
+    Invoice, MemberFeedback, EmailLog, SMSLog, WhatsAppLog,
+    Lead, Locker, Coupon,
 )
 from app.security import PasswordManager
 
@@ -38,9 +41,30 @@ def reset_demo():
     if not existing:
         return
     vid = existing.id
+    # Delete all child tables that FK-reference members before deleting members
+    member_ids = [m.id for m in db.query(Member.id).filter(Member.vendor_id == vid).all()]
+    if member_ids:
+        db.query(FitnessGoal).filter(FitnessGoal.member_id.in_(member_ids)).delete(synchronize_session=False)
+        db.query(BodyMeasurement).filter(BodyMeasurement.member_id.in_(member_ids)).delete(synchronize_session=False)
+        db.query(ClassMember).filter(ClassMember.member_id.in_(member_ids)).delete(synchronize_session=False)
+        db.query(ClassWaitlist).filter(ClassWaitlist.member_id.in_(member_ids)).delete(synchronize_session=False)
+        db.query(Invoice).filter(Invoice.member_id.in_(member_ids)).delete(synchronize_session=False)
+        db.query(MemberFeedback).filter(MemberFeedback.member_id.in_(member_ids)).delete(synchronize_session=False)
+        db.query(EmailLog).filter(EmailLog.member_id.in_(member_ids)).delete(synchronize_session=False)
+        db.query(SMSLog).filter(SMSLog.member_id.in_(member_ids)).delete(synchronize_session=False)
+        db.query(WhatsAppLog).filter(WhatsAppLog.member_id.in_(member_ids)).delete(synchronize_session=False)
+        db.query(Lead).filter(Lead.converted_member_id.in_(member_ids)).update(
+            {Lead.converted_member_id: None}, synchronize_session=False
+        )
+        db.query(Locker).filter(Locker.member_id.in_(member_ids)).update(
+            {Locker.member_id: None}, synchronize_session=False
+        )
     db.query(Attendance).filter(Attendance.vendor_id == vid).delete()
     db.query(Payment).filter(Payment.vendor_id == vid).delete()
     db.query(Membership).filter(Membership.vendor_id == vid).delete()
+    db.query(Lead).filter(Lead.vendor_id == vid).delete()
+    db.query(Locker).filter(Locker.vendor_id == vid).delete()
+    db.query(Coupon).filter(Coupon.vendor_id == vid).delete()
     db.query(Class).filter(Class.vendor_id == vid).delete()
     db.query(MembershipPlan).filter(MembershipPlan.vendor_id == vid).delete()
     db.query(Member).filter(Member.vendor_id == vid).delete()

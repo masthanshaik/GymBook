@@ -12,7 +12,7 @@ const ForgotPassword = () => {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!email) return toast.error('Enter your email')
+    if (!email) { toast.error('Enter your email'); return }
     setLoading(true)
     try {
       const r = await apiClient.forgotPassword(email)

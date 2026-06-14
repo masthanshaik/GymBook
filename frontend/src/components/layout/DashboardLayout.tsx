@@ -7,21 +7,15 @@ const DashboardLayout = () => {
   const [mobileOpen, setMobileOpen] = useState(false)
 
   return (
-    <div className="flex h-screen bg-ink-50 overflow-hidden">
+    <div className="flex h-screen bg-slate-100 overflow-hidden">
       <Sidebar mobileOpen={mobileOpen} onClose={() => setMobileOpen(false)} />
 
-      {/* Mobile overlay */}
-      {mobileOpen && (
-        <div
-          className="fixed inset-0 bg-black/40 z-30 lg:hidden"
-          onClick={() => setMobileOpen(false)}
-        />
-      )}
-
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden min-w-0">
         <Header onMenuClick={() => setMobileOpen(true)} />
         <main className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8">
-          <Outlet />
+          <div className="page-enter">
+            <Outlet />
+          </div>
         </main>
       </div>
     </div>

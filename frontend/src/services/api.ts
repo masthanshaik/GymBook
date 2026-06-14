@@ -150,6 +150,10 @@ class APIClient {
     return this.client.get('/reports/charts')
   }
 
+  getUpcomingBirthdays(days = 7) {
+    return this.client.get(`/reports/birthdays?days=${days}`)
+  }
+
   getMemberDetail(memberId: string) {
     return this.client.get(`/reports/member-detail/${memberId}`)
   }
@@ -426,6 +430,63 @@ class APIClient {
 
   resetPassword(token: string, newPassword: string) {
     return this.client.post('/auth/reset-password', { token, new_password: newPassword })
+  }
+
+  // Workout Plans
+  getWorkoutPlans() { return this.client.get('/workout-plans') }
+  createWorkoutPlan(data: any) { return this.client.post('/workout-plans', data) }
+  updateWorkoutPlan(planId: string, data: any) { return this.client.patch(`/workout-plans/${planId}`, data) }
+  deleteWorkoutPlan(planId: string) { return this.client.delete(`/workout-plans/${planId}`) }
+  addWorkoutExercise(planId: string, data: any) { return this.client.post(`/workout-plans/${planId}/exercises`, data) }
+  deleteWorkoutExercise(planId: string, exId: string) { return this.client.delete(`/workout-plans/${planId}/exercises/${exId}`) }
+  getWorkoutAssignments() { return this.client.get('/workout-plans/assignments/all') }
+  assignWorkoutPlan(data: any) { return this.client.post('/workout-plans/assignments', data) }
+  updateWorkoutAssignment(id: string, data: any) { return this.client.patch(`/workout-plans/assignments/${id}`, data) }
+
+  // Diet Plans
+  getDietPlans() { return this.client.get('/diet-plans') }
+  createDietPlan(data: any) { return this.client.post('/diet-plans', data) }
+  updateDietPlan(planId: string, data: any) { return this.client.patch(`/diet-plans/${planId}`, data) }
+  deleteDietPlan(planId: string) { return this.client.delete(`/diet-plans/${planId}`) }
+  addDietMeal(planId: string, data: any) { return this.client.post(`/diet-plans/${planId}/meals`, data) }
+  deleteDietMeal(planId: string, mealId: string) { return this.client.delete(`/diet-plans/${planId}/meals/${mealId}`) }
+  getDietAssignments() { return this.client.get('/diet-plans/assignments/all') }
+  assignDietPlan(data: any) { return this.client.post('/diet-plans/assignments', data) }
+  updateDietAssignment(id: string, data: any) { return this.client.patch(`/diet-plans/assignments/${id}`, data) }
+
+  // Trainer Assignments
+  getTrainerAssignments(params?: any) { return this.client.get('/trainer-assignments', { params }) }
+  getTrainers() { return this.client.get('/trainer-assignments/trainers') }
+  getTrainerSummary() { return this.client.get('/trainer-assignments/trainer-summary') }
+  assignTrainer(data: any) { return this.client.post('/trainer-assignments', data) }
+  updateTrainerAssignment(id: string, data: any) { return this.client.patch(`/trainer-assignments/${id}`, data) }
+  deleteTrainerAssignment(id: string) { return this.client.delete(`/trainer-assignments/${id}`) }
+
+  // Notifications
+  sendRenewalReminders(data?: any) { return this.client.post('/notifications/renewal-reminder', data || {}) }
+  sendPaymentReceipt(data: any) { return this.client.post('/notifications/payment-receipt', data) }
+  sendBirthdayWishes(data?: any) { return this.client.post('/notifications/birthday-wish', data || {}) }
+  sendCustomNotification(data: any) { return this.client.post('/notifications/custom', data) }
+  getNotificationLogs() { return this.client.get('/notifications/logs') }
+
+  // Razorpay confirm
+  confirmPayment(paymentId: string) { return this.client.post(`/payments/${paymentId}/confirm`) }
+
+  // Generic HTTP methods for pages that call apiClient directly
+  get(url: string, config?: any) {
+    return this.client.get(url, config)
+  }
+
+  post(url: string, data?: any, config?: any) {
+    return this.client.post(url, data, config)
+  }
+
+  patch(url: string, data?: any, config?: any) {
+    return this.client.patch(url, data, config)
+  }
+
+  delete(url: string, config?: any) {
+    return this.client.delete(url, config)
   }
 }
 

@@ -10,6 +10,8 @@ from app.api.routes import (
     classes, attendance, reports, developer, admin
 )
 from app.api.routes import measurements, leads, expenses, lockers, staff
+from app.api.routes import coupons, goals, member_portal
+from app.api.routes import workout_plans, diet_plans, trainer_assignments, notifications
 
 # Configure logging
 logging.basicConfig(
@@ -69,6 +71,14 @@ app.include_router(leads.router, prefix="/api/v1/leads", tags=["CRM Leads"])
 app.include_router(expenses.router, prefix="/api/v1/expenses", tags=["Expenses"])
 app.include_router(lockers.router, prefix="/api/v1/lockers", tags=["Lockers"])
 app.include_router(staff.router, prefix="/api/v1/staff", tags=["Staff Management"])
+
+app.include_router(coupons.router, prefix="/api/v1/coupons", tags=["Coupons"])
+app.include_router(goals.router, prefix="/api/v1/goals", tags=["Fitness Goals"])
+app.include_router(workout_plans.router, prefix="/api/v1/workout-plans", tags=["Workout Plans"])
+app.include_router(diet_plans.router, prefix="/api/v1/diet-plans", tags=["Diet Plans"])
+app.include_router(trainer_assignments.router, prefix="/api/v1/trainer-assignments", tags=["Trainer Assignments"])
+app.include_router(notifications.router, prefix="/api/v1/notifications", tags=["Notifications"])
+app.include_router(member_portal.router, prefix="/api/v1/member-portal", tags=["Member Portal"])
 
 # Developer & admin
 app.include_router(developer.router, prefix="/api/v1/developers", tags=["Developer Portal"])

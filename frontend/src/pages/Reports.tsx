@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { BarChart3, TrendingUp, Users, DollarSign, Activity, PieChart } from 'lucide-react'
+import { BarChart3, TrendingUp, Users, DollarSign } from 'lucide-react'
 import {
   LineChart, Line, BarChart, Bar, PieChart as RechartsPie, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend

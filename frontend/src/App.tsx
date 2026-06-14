@@ -28,6 +28,14 @@ import MeasurementsPage from '@pages/Measurements'
 import LeadsPage from '@pages/Leads'
 import ExpensesPage from '@pages/Expenses'
 import LockersPage from '@pages/Lockers'
+import CouponsPage from '@pages/Coupons'
+import GoalsPage from '@pages/Goals'
+import WorkoutPlansPage from '@pages/WorkoutPlans'
+import DietPlansPage from '@pages/DietPlans'
+import TrainerAssignmentsPage from '@pages/TrainerAssignments'
+import NotificationsPage from '@pages/Notifications'
+import QRCheckinPage from '@pages/QRCheckin'
+import MemberPortalPage from '@pages/MemberPortal'
 import NotFoundPage from '@pages/NotFound'
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -69,7 +77,17 @@ function App() {
           <Route path="/leads" element={<LeadsPage />} />
           <Route path="/expenses" element={<ExpensesPage />} />
           <Route path="/lockers" element={<LockersPage />} />
+          <Route path="/coupons" element={<CouponsPage />} />
+          <Route path="/goals" element={<GoalsPage />} />
+          <Route path="/workout-plans" element={<WorkoutPlansPage />} />
+          <Route path="/diet-plans" element={<DietPlansPage />} />
+          <Route path="/trainer-assignments" element={<TrainerAssignmentsPage />} />
+          <Route path="/notifications" element={<NotificationsPage />} />
+          <Route path="/qr-checkin" element={<QRCheckinPage />} />
         </Route>
+
+        {/* Member Portal - standalone, no dashboard layout */}
+        <Route path="/member-portal" element={<MemberPortalPage />} />
 
         <Route path="*" element={<NotFoundPage />} />
       </Routes>

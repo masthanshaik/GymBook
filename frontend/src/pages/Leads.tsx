@@ -55,7 +55,7 @@ const Leads = () => {
   }
 
   const save = async () => {
-    if (!form.first_name || !form.phone) return toast.error('Name and phone are required')
+    if (!form.first_name || !form.phone) { toast.error('Name and phone are required'); return }
     setSaving(true)
     try {
       const payload: any = { ...form }
